@@ -1,6 +1,4 @@
 # 小智 AI 聊天机器人 （XiaoZhi AI Chatbot）
-这是从xiaozhi clone过来的项目。
-
 
 （中文 | [English](README_en.md) | [日本語](README_ja.md)）
 
