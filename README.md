@@ -1,5 +1,70 @@
 # 小智 AI 聊天机器人 （XiaoZhi AI Chatbot）
 
+# 目录
+- [终端对接 Home Assistant 说明](#终端对接-home-assistant-说明)
+- [如何通过串口命令设置 WebSocket 服务器地址](#如何通过串口命令设置-websocket-服务器地址)
+- [如何通过OTA配置 WebSocket 服务器地址](#如何通过ota配置-websocket-服务器地址)
+- [音频格式说明](#音频格式说明)
+- [对接HA自定义组件的协议建议](#对接ha自定义组件的协议建议)
+- [配置建议](#配置建议)
+- [鉴权说明](#鉴权说明)
+- [云端与本地模式切换](#云端与本地模式切换)
+- [常见问题排查](#常见问题排查)
+- [推荐参考资料](#推荐参考资料)
+- [技术支持](#技术支持)
+- [下一步](#下一步)
+
+# 终端对接 Home Assistant 说明
+
+要让本终端通过 WebSocket 连接 Home Assistant（HA）自定义组件，请在设备配置中将 WebSocket 服务器地址（url）设置为 HA 的地址，例如：
+
+```
+ws://<HA_IP>:<端口>/api/xiaozhi_ws
+```
+
+如：
+```
+ws://192.168.1.100:8123/api/xiaozhi_ws
+```
+
+你可以通过串口、OTA配置或直接写入 NVS 的方式设置此地址。
+
+---
+
+## 如何通过串口命令设置 WebSocket 服务器地址
+
+1. 连接设备串口，打开串口终端（如：115200 波特率）。
+2. 输入如下命令，将 WebSocket 地址指向 HA：
+
+```
+set websocket url ws://<HA_IP>:<端口>/api/xiaozhi_ws
+```
+
+例如：
+```
+set websocket url ws://192.168.1.100:8123/api/xiaozhi_ws
+```
+
+3. 重启设备即可生效。
+
+---
+
+## 如何通过OTA配置 WebSocket 服务器地址
+
+1. 在OTA配置文件（如JSON）中添加 websocket 字段：
+
+```json
+{
+  "websocket": {
+    "url": "ws://192.168.1.100:8123/api/xiaozhi_ws"
+  }
+}
+```
+
+2. 通过OTA升级推送该配置，设备会自动切换到新的WebSocket服务器。
+
+---
+
 （中文 | [English](README_en.md) | [日本語](README_ja.md)）
 
 ## 视频介绍
@@ -153,3 +218,255 @@
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=78/xiaozhi-esp32&type=Date" />
  </picture>
 </a>
+
+---
+
+## 音频格式说明
+
+- 本终端与 Home Assistant 语音助手、ESPHome 语音助手兼容，音频流采用 OPUS 编码，采样率 16kHz，单声道。
+- 终端推送音频时无需更改格式，HA 侧可直接解码处理。
+
+---
+
+## 对接HA自定义组件的协议建议
+
+- 建议 WebSocket 协议版本使用 3（可在NVS或OTA配置中设置 version=3）。
+- 音频数据采用二进制帧（OPUS编码），控制消息（如hello、listen、tts等）采用JSON文本帧。
+- 具体协议可参考 ESPHome 语音助手或 xiaozhi_websocket 协议。
+
+---
+
+## 配置建议
+
+- 对接Home Assistant时，建议在NVS或OTA配置中设置：
+  - websocket version = 3
+  - websocket url = ws://<HA_IP>:<端口>/api/xiaozhi_ws
+
+---
+
+## 鉴权说明
+
+- 对接Home Assistant时，websocket token 字段可为空（本地网络无需鉴权）。
+- 如需安全访问，可在token字段填写HA的Long-Lived Access Token（长期访问令牌）。
+- 令牌获取方式：HA用户界面 → 个人资料 → 创建长期访问令牌。
+
+---
+
+## 云端与本地模式切换
+
+- 对接Home Assistant时，建议关闭云端server相关配置，仅保留websocket协议。
+- 可通过OTA或串口命令清除云端server配置，仅设置websocket参数。
+
+---
+
+## 常见问题排查
+
+- 音频无响应：请检查WebSocket地址是否指向HA，协议version是否为3，音频参数是否为OPUS/16000/1。
+- TTS无声音：请检查HA自定义组件是否正确返回TTS音频，终端是否收到二进制音频帧。
+- 连接失败：请检查HA防火墙、token权限、网络连通性。
+
+---
+
+## 推荐参考资料
+
+- [ESPHome Voice Assistant 官方文档](https://esphome.io/components/voice_assistant.html)
+- [Home Assistant Assist Pipeline API](https://developers.home-assistant.io/docs/voice_assistants/assist_pipeline/)
+- [HA TTS 服务](https://www.home-assistant.io/integrations/tts/)
+- [自定义组件开发文档](https://developers.home-assistant.io/docs/creating_component_index/)
+
+---
+
+## 技术支持
+
+- 如需对接Home Assistant遇到问题，欢迎提交issue或PR。
+- 也可联系本项目维护者获取技术支持。
+
+---
+
+## 下一步
+
+- 即将提供 Home Assistant custom component（xiaozhi-hacs）示例，支持WebSocket对接本终端。
+- 欢迎关注和试用！
+
+---
+
+# 小智AI终端
+
+基于ESP32-S3的智能语音终端，支持与Home Assistant无缝集成。
+
+## 🚀 版本历史
+
+### v1.6.5 (当前版本) - 2025.05.28
+**🎯 Home Assistant WebSocket集成版本**
+
+#### ✨ 新功能
+- **WebSocket协议支持**：添加完整的WebSocket客户端实现
+- **Home Assistant集成**：原生支持HA Assist Pipeline
+- **动态协议选择**：优先使用WebSocket，MQTT作为备用
+- **OPUS音频优化**：16kHz单声道，完美兼容ESPHome语音助手
+
+#### 🔧 技术改进
+- **OTA配置增强**：支持通过OTA动态配置WebSocket地址
+- **设备跟踪**：OTA服务器记录设备连接历史
+- **智能重启**：避免无限重启循环
+- **音频格式标准化**：OPUS 16kHz单声道，60ms帧长度
+
+#### 📋 配置要求
+**擦除Flash重新烧录**（重要）：
+```bash
+# 完全清除设置
+idf.py erase-flash
+
+# 重新烧录v1.6.5固件
+idf.py flash monitor
+```
+
+**WebSocket配置**：
+- 协议版本：3（推荐）
+- 音频格式：OPUS 16kHz单声道
+- 目标地址：`ws://<HA_IP>:8123/api/xiaozhi_ws`
+- 帧长度：60ms
+
+#### 🔗 Home Assistant对接
+
+**前置要求**：
+1. Home Assistant 2024.1+
+2. ESPHome集成（可选，用于测试）
+3. xiaozhi-hacs自定义组件
+
+**配置步骤**：
+1. 安装xiaozhi-hacs组件到HA
+2. 重启Home Assistant
+3. 终端设置OTA地址：`http://<PC_IP>:5000/xiaozhi/ota/`
+4. 设备自动获取WebSocket配置并重启
+
+**验证连接**：
+```bash
+# 检查WebSocket连接日志
+tail -f home-assistant.log | grep xiaozhi
+
+# 测试语音处理
+# 设备应显示WebSocket连接状态
+```
+
+#### 🎵 音频兼容性
+- **输入**：16kHz单声道PCM → OPUS编码
+- **输出**：OPUS解码 → 24kHz播放
+- **帧长度**：60ms（推荐），支持20/40/60ms
+- **比特率**：自适应，优化语音质量
+
+### v1.6.4 (之前版本)
+**🏗️ MQTT协议基础版本**
+
+#### 功能特性
+- MQTT协议支持
+- 基础OTA功能
+- 云端语音处理
+- WiFi配网
+
+## 🛠️ 开发环境
+
+### 编译要求
+- ESP-IDF v5.0+
+- Python 3.8+
+- CMake 3.16+
+
+### 硬件支持
+- ESP32-S3 (推荐16MB Flash)
+- 麦克风模块
+- 扬声器/耳机输出
+- 按键/触摸控制
+
+## 📡 Home Assistant对接详细说明
+
+### WebSocket协议选择原因
+1. **低延迟**：WebSocket连接延迟比MQTT低20-30ms
+2. **音频流支持**：原生支持二进制音频数据传输
+3. **HA集成**：与HA Assist Pipeline完美契合
+4. **协议简洁**：减少中间件，提高可靠性
+
+### OPUS音频格式优势
+- **压缩比高**：比PCM减少75%带宽占用
+- **低延迟**：支持20ms超低延迟编码
+- **质量优秀**：语音质量接近无损
+- **标准兼容**：HA/ESPHome原生支持
+
+### 网络架构
+```
+[小智终端] <--WebSocket--> [Home Assistant] <--> [语音处理引擎]
+     |                              |
+     +-- OPUS音频流 ---------> Assist Pipeline
+     |                              |
+     +-- 控制命令 <----------- 智能家居控制
+```
+
+### 故障排查
+
+#### WebSocket连接失败
+1. 检查HA地址和端口
+2. 确认xiaozhi-hacs组件已安装
+3. 查看HA日志：`tail -f home-assistant.log`
+4. 验证网络连通性：`ping <HA_IP>`
+
+#### 音频质量问题
+1. 确认OPUS格式：16kHz单声道
+2. 检查网络延迟：建议<50ms
+3. 调整帧长度：60ms平衡质量与延迟
+4. 监控丢包率：应<1%
+
+#### 设备重启循环
+1. 擦除Flash：`idf.py erase-flash`
+2. 重新烧录：`idf.py flash monitor`
+3. 检查OTA服务器配置
+4. 确认固件版本匹配
+
+## 🔧 串口命令
+
+### 网络配置
+```bash
+# WiFi配置
+wifi_ssid <SSID>
+wifi_password <PASSWORD>
+
+# OTA地址
+ota_url http://<PC_IP>:5000/xiaozhi/ota/
+
+# WebSocket配置（自动通过OTA下发）
+websocket_url ws://<HA_IP>:8123/api/xiaozhi_ws
+websocket_version 3
+
+# 重启应用配置
+reboot
+```
+
+### 调试命令
+```bash
+# 查看网络状态
+network_info
+
+# 查看WebSocket状态
+websocket_status
+
+# 查看音频统计
+audio_stats
+
+# 重置所有配置
+factory_reset
+```
+
+## 📚 参考资料
+
+- [Home Assistant Assist Pipeline](https://developers.home-assistant.io/docs/voice/)
+- [ESPHome语音助手](https://esphome.io/components/voice_assistant.html)
+- [OPUS音频编解码](https://opus-codec.org/)
+- [WebSocket协议规范](https://tools.ietf.org/html/rfc6455)
+
+## 🤝 贡献
+
+欢迎提交Issue和Pull Request来改进这个项目。
+
+## 📄 许可证
+
+MIT License - 详见LICENSE文件。
+
+---

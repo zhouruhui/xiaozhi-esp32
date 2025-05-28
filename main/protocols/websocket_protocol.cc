@@ -96,6 +96,8 @@ bool WebsocketProtocol::OpenAudioChannel() {
         delete websocket_;
     }
 
+    // 如需对接Home Assistant自定义组件，请将url设置为HA的WebSocket服务地址，如：ws://192.168.1.100:8123/api/xiaozhi_ws
+    // 协议版本建议为3，兼容ESPHome/HA语音助手
     Settings settings("websocket", false);
     std::string url = settings.GetString("url");
     std::string token = settings.GetString("token");
@@ -207,6 +209,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
 
 std::string WebsocketProtocol::GetHelloMessage() {
     // keys: message type, version, audio_params (format, sample_rate, channels)
+    // 对接HA/ESPHome时，audio_params需为opus/16000/1，frame_duration建议60ms
     cJSON* root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "type", "hello");
     cJSON_AddNumberToObject(root, "version", version_);
@@ -250,10 +253,16 @@ void WebsocketProtocol::ParseServerHello(const cJSON* root) {
         auto sample_rate = cJSON_GetObjectItem(audio_params, "sample_rate");
         if (cJSON_IsNumber(sample_rate)) {
             server_sample_rate_ = sample_rate->valueint;
+            if (server_sample_rate_ != 16000) {
+                ESP_LOGW(TAG, "[HA对接] server sample_rate: %d (建议16000)", server_sample_rate_);
+            }
         }
         auto frame_duration = cJSON_GetObjectItem(audio_params, "frame_duration");
         if (cJSON_IsNumber(frame_duration)) {
             server_frame_duration_ = frame_duration->valueint;
+            if (server_frame_duration_ != 60) {
+                ESP_LOGW(TAG, "[HA对接] server frame_duration: %d (建议60)", server_frame_duration_);
+            }
         }
     }
 
